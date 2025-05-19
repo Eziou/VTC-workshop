@@ -1,0 +1,18 @@
+// Training Process
+digraph {
+	Start [label=Start shape=ellipse]
+	Load [label="Load Data" shape=box]
+	CV [label="5-Fold Cross Validation" shape=box]
+	Split [label="Split Train/Val" shape=box]
+	Init [label="Initialize Models" shape=box]
+	Train [label="Train Model" shape=box]
+	Eval [label="Evaluate Model" shape=box]
+	End [label=End shape=ellipse]
+	Start -> Load
+	Load -> CV
+	CV -> Split
+	Split -> Init
+	Init -> Train
+	Train -> Eval
+	Eval -> End
+}

@@ -1,0 +1,29 @@
+// Model Architecture
+digraph {
+	rankdir=TB
+	node [fontname=Arial shape=box style=filled]
+	edge [fontname=Arial]
+	X [label="Input
+x ∈ ℝⁿ" fillcolor=lightblue]
+	LGBM1 [label=LGBM_1 fillcolor=lightblue]
+	X -> LGBM1 [label=""]
+	S11 [label="S_{1,1}" fillcolor=lightgreen]
+	S12 [label="S_{1,2}" fillcolor=lightgreen]
+	LGBM1 -> S11 [label=""]
+	LGBM1 -> S12 [label=""]
+	LGBM21 [label="LGBM_{2,1}" fillcolor=lightblue]
+	LGBM22 [label="LGBM_{2,2}" fillcolor=lightblue]
+	S11 -> LGBM21 [label=""]
+	S12 -> LGBM22 [label=""]
+	P1 [label="p_{2,1}" fillcolor=lightgreen]
+	P2 [label="p_{2,2}" fillcolor=lightgreen]
+	LGBM21 -> P1 [label=""]
+	LGBM22 -> P2 [label=""]
+	P [label="Final Probability p
+(Binary Classification)" fillcolor=lightyellow]
+	P1 -> P [label=""]
+	P2 -> P [label=""]
+	Note [label="Note: Can extend to more subsets (K_l)
+and more layers (L)" fillcolor=white shape=note]
+	LGBM22 -> Note [label="" style=dotted]
+}
