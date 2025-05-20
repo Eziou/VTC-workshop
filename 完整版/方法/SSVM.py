@@ -14,11 +14,23 @@ col_names = ["ID", "K1K2驱动信号", "电子锁驱动信号", "急停信号", 
 data = pd.read_csv("/home/zoufangming/Documents/Guangdian/实验代码/完整版/预训练/data/data.csv", names=col_names)
 # Select first 200 and last 200 samples
 # Randomly sample 400 samples
-data = data.sample(n=400, random_state=42).reset_index(drop=True)
-print(f"Total samples after random sampling: {len(data)}")
+# data = data.sample(n=2000, random_state=40).reset_index(drop=True)
+# print(f"Total samples after random sampling: {len(data)}")
 # 提取特征和标签
 dataset_X = data[["K1K2驱动信号", "电子锁驱动信号", "急停信号", "门禁信号", "THDV-M", "THDI-M"]].values
 dataset_Y = data["label"].values.flatten()
+
+# train_data = pd.read_csv(
+#     "/home/zoufangming/Documents/Guangdian/实验代码/小样本数据集/ratio_1_1_train_800.csv", 
+#     names=col_names, 
+#     header=0)
+# test_data = pd.read_csv("/home/zoufangming/Documents/Guangdian/实验代码/小样本数据集/ratio_1_1_test_200.csv", names=col_names, 
+#                         header=0)
+
+# x_train = train_data[["K1K2驱动信号", "电子锁驱动信号", "急停信号", "门禁信号", "THDV-M", "THDI-M"]].values
+# y_train = train_data["label"].values.flatten()
+# x_test = test_data[["K1K2驱动信号", "电子锁驱动信号", "急停信号", "门禁信号", "THDV-M", "THDI-M"]].values
+# y_test = test_data["label"].values.flatten()
 
 # 划分训练集和测试集
 x_train, x_test, y_train, y_test = train_test_split(dataset_X, dataset_Y, test_size=0.2, random_state=42)
@@ -37,9 +49,9 @@ class TwoLayerSVM:
         self.svm_layer2_s1 = None
         # 记录参数
         self.params = {
-            'Layer 1': {'C': 1, 'kernel': 'rbf'},
-            'Layer 2 (S_0)': {'C': 0.1, 'kernel': 'rbf'},
-            'Layer 2 (S_1)': {'C': 1, 'kernel': 'rbf'}
+            'Layer 1': {'C': 1, 'kernel': 'linear'},
+            'Layer 2 (S_0)': {'C': 0.1, 'kernel': 'linear'},
+            'Layer 2 (S_1)': {'C': 1, 'kernel': 'linear'}
         }
         self.best_params = self.params.copy()
         self.best_accuracy = 0.0
@@ -47,7 +59,7 @@ class TwoLayerSVM:
     def train_svm(self, X, y, layer_name):
         # 根据层级设置参数
         params = self.params[layer_name]
-        svm = SVC(kernel='rbf', C=params['C'], random_state=42)
+        svm = SVC(kernel='linear', C=params['C'], random_state=40)
         start_time = time.time()
         svm.fit(X, y)
         end_time = time.time()
@@ -110,10 +122,9 @@ class TwoLayerSVM:
     def optimize_parameters(self, X_train, y_train, X_test, y_test):
         print("\nStarting parameter optimization...")
         # 定义 C 参数的候选值
-        C_values = [0.5, 1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400]
-        # 生成所有参数组合
+        C_values = [0.001, 0.01, 0.05, 0.1, 0.5, 1, 10, 20, 30]
         # param_combinations = list(itertools.product(C_values, C_values, C_values))
-        # # 生成所有参数组合
+        # 生成所有参数组合
         all_combinations = list(itertools.product(C_values, C_values, C_values))
         # 筛选出第一个C值小于等于第二个和第三个C值的组合
         param_combinations = [combo for combo in all_combinations if combo[0] <= combo[1] and combo[0] <= combo[2]]
@@ -136,10 +147,15 @@ class TwoLayerSVM:
             accuracy = accuracy_score(y_test, y_pred)
             print(f"Accuracy for this combination: {accuracy:.4f}")
 
-            # 更新最佳参数
+            # 更新最佳参数 - 创建深度拷贝
             if accuracy > self.best_accuracy:
                 self.best_accuracy = accuracy
-                self.best_params = self.params.copy()
+                # 创建一个全新的字典，而不是引用原参数
+                self.best_params = {
+                    'Layer 1': {'C': c1, 'kernel': 'linear'},
+                    'Layer 2 (S_0)': {'C': c2_s0, 'kernel': 'linear'},
+                    'Layer 2 (S_1)': {'C': c2_s1, 'kernel': 'linear'}
+                }
                 print(f"New best accuracy: {self.best_accuracy:.4f}")
 
         end_time = time.time()
@@ -164,14 +180,43 @@ end_train_time = time.time()
 total_train_time = end_train_time - start_train_time
 
 # 参数优化
-optimization_time = model.optimize_parameters(x_train, y_train, x_test, y_test)
+# optimization_time = model.optimize_parameters(x_train, y_train, x_test, y_test)
+optimization_time = 0
+
+# Train the model with the specific parameters C = (0.01, 10, 10)
+print("\nTraining model with specified parameters: C_Layer1=0.01, C_Layer2_S0=10, C_Layer2_S1=10")
+model.params['Layer 1']['C'] = 0.01
+model.params['Layer 2 (S_0)']['C'] = 10
+model.params['Layer 2 (S_1)']['C'] = 10
+
+# Retrain the model with these specific parameters
+model.fit(x_train, y_train)
+
+# Evaluate on test set with the specified parameters
+y_pred_specific = model.predict(x_test)
+specific_accuracy = accuracy_score(y_test, y_pred_specific)
+print(f"Accuracy with specified parameters (0.01, 10, 10): {specific_accuracy:.4f}")
+
+# Compare with the best parameters found during optimization
+print(f"Best accuracy from optimization: {model.best_accuracy:.4f}")
 
 # 记录预测时间
+# Record prediction time and calculate time per sample
 print('Start predicting...')
 start_predict_time = time.time()
 y_pred = model.predict(x_test)
 end_predict_time = time.time()
 predict_time = end_predict_time - start_predict_time
+
+# Calculate inference time per sample
+time_per_sample = predict_time / len(x_test)
+print(f"Inference time per sample: {time_per_sample:.6f} seconds")
+# print('Start predicting...')
+# start_predict_time = time.time()
+# y_pred = model.predict(x_test)
+
+# end_predict_time = time.time()
+# predict_time = end_predict_time - start_predict_time
 
 # 计算评估指标
 accuracy = accuracy_score(y_test, y_pred)
